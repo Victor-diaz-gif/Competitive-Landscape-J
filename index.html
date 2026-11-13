@@ -1,4 +1,4 @@
-<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="22" width="1240" height="920"><head>
+<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="23" width="1240" height="920"><head>
   <meta charset="UTF-8">
   <title>Competitive Landscape &amp; Testigos JLR</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -990,13 +990,13 @@
         </div>
       </div>
 
-      <!-- PANEL TREEMAP AL 100% CON FILTRO POR MARCA Y TAMAÑO POR INVERSIÓN -->
+      <!-- PANEL TREEMAP AL 100% CON FILTRO POR MARCA Y SOLO NOMBRES DE PRODUCTOS -->
       <div class="charts-grid">
         <div class="chart-panel" style="grid-column: span 2;">
           <div class="panel-header">
             <div class="panel-header-titles">
               <h2 id="chart-title-treemap">Inversión por Producto (Treemap)</h2>
-              <p id="chart-sub-treemap">El tamaño de cada bloque representa de forma proporcional su inversión publicitaria ($M MXN)</p>
+              <p id="chart-sub-treemap">Visualización de productos (el tamaño del bloque representa proporcionalmente su inversión)</p>
             </div>
             <div class="panel-header-controls">
               <label for="treemap-brand-filter">Filtrar Marca:</label>
@@ -1628,7 +1628,6 @@
         compSelect.appendChild(opt);
       });
 
-      // Poblado dinámico del selector de marca en Treemap
       const treemapBrandSelect = document.getElementById('treemap-brand-filter');
       if (treemapBrandSelect) {
         treemapBrandSelect.innerHTML = '<option value="ALL" selected>Todas las Marcas (Total)</option>';
@@ -1989,22 +1988,101 @@
 
       document.getElementById('media-type-insights-text').innerHTML = mediaTypeInsight;
 
-      renderClassificationChart(clasifTotals, grandTotal);
-      renderBrandSoiChart(aggregatedBrands, grandTotal);
-      renderTopCompetitorsChart(aggregatedBrands);
-      renderMonthlyTrendChart(aggregatedBrands, monthlyTotals);
-      renderMediaMixChart(aggregatedBrands);
-      renderBrandGrpsChart(brandGrpsMap, brandSpotsMap, totalTVGRPs);
-      renderBroadcastDetailChart(broadcastChannelTotals, selectedBroadcastMedium);
-      renderTypeChart(typeTotals, grandTotal, selectedTypeMedia);
-      renderTable(aggregatedBrands, grandTotal, selectedMonth, selectedQuarter);
+      // LLAMADAS BLINDADAS CON TRY/CATCH PARA CADA GRÁFICO
+      try { renderClassificationChart(clasifTotals, grandTotal); } catch(e){ console.error(e); }
+      try { renderBrandSoiChart(aggregatedBrands, grandTotal); } catch(e){ console.error(e); }
+      try { renderTopCompetitorsChart(aggregatedBrands); } catch(e){ console.error(e); }
+      try { renderMonthlyTrendChart(aggregatedBrands, monthlyTotals); } catch(e){ console.error(e); }
+      try { renderMediaMixChart(aggregatedBrands); } catch(e){ console.error(e); }
+      try { renderBrandGrpsChart(brandGrpsMap, brandSpotsMap, totalTVGRPs); } catch(e){ console.error(e); }
+      try { renderBroadcastDetailChart(broadcastChannelTotals, selectedBroadcastMedium); } catch(e){ console.error(e); }
+      try { renderTypeChart(typeTotals, grandTotal, selectedTypeMedia); } catch(e){ console.error(e); }
+      try { renderTable(aggregatedBrands, grandTotal, selectedMonth, selectedQuarter); } catch(e){ console.error(e); }
 
       setTimeout(() => {
-        renderNativeTreemap(filtered);
+        try { renderNativeTreemap(filtered); } catch(e){ console.error(e); }
       }, 30);
     }
 
-    // ALGORITMO BINARIO RECURSIVO: GARANTIZA COBERTURA 100% SIN HUECOS NI ESPACIOS EN BLANCO
+    // GRÁFICO GRPs BLINDADO CONTRA DATOS VACÍOS O SIN ACTIVIDAD TV
+    function renderBrandGrpsChart(brandGrpsMap, brandSpotsMap, totalTVGRPs) {
+      const canvas = document.getElementById('brandGrpsChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      
+      let isUsingSpots = (totalTVGRPs === 0);
+      let sourceMap = isUsingSpots ? brandSpotsMap : brandGrpsMap;
+
+      let sorted = Object.entries(sourceMap || {})
+        .map(([brand, val]) => ({ brand, val }))
+        .sort((a, b) => b.val - a.val)
+        .slice(0, 10);
+
+      let labels = sorted.map(d => d.brand);
+      let values = sorted.map(d => d.val);
+      let colors = sorted.map(d => checkIsClientBrand(d.brand) ? '#005a2b' : '#1e3a8a');
+
+      if (labels.length === 0) {
+        labels = ['Sin actividad TV'];
+        values = [0];
+        colors = ['#cbd5e1'];
+      }
+
+      if (brandGrpsChartInstance) {
+        brandGrpsChartInstance.destroy();
+        brandGrpsChartInstance = null;
+      }
+
+      try {
+        brandGrpsChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colors,
+              borderRadius: 4,
+              barThickness: 15
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const val = ctx.raw;
+                    if (isUsingSpots) {
+                      return ` ${val.toLocaleString()} spots en TV`;
+                    }
+                    const pct = totalTVGRPs > 0 ? ((val / totalTVGRPs) * 100).toFixed(1) : 0;
+                    return ` ${val.toFixed(1)} GRPs (${pct}% del total TV)`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { callback: v => isUsingSpots ? `${v} Spots` : `${v} GRPs` },
+                grid: { color: '#f1f5f9' }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { font: { size: 11, weight: '600' }, color: '#334155' }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Error al renderizar brandGrpsChart:", err);
+      }
+    }
+
+    // ALGORITMO BINARIO GARANTIZA 100% DE COBERTURA
     function computeBinaryTreemapBoxes(items, x, y, width, height) {
       if (!items || items.length === 0 || width <= 0 || height <= 0) return [];
       
@@ -2066,7 +2144,7 @@
       }
     }
 
-    // TREEMAP AJUSTADO AL 100% CON FILTRO POR MARCA Y TAMAÑO PROPORCIONAL A LA INVERSIÓN
+    // TREEMAP: AJUSTADO AL 100%, TAMAÑO POR INVERSIÓN Y SOLO NOMBRES DE PRODUCTOS
     function renderNativeTreemap(records) {
       const canvas = document.getElementById('treemapCanvas');
       const container = document.getElementById('treemapContainer');
@@ -2153,30 +2231,24 @@
         ctx.lineWidth = 1.8;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        if (box.width > 42 && box.height > 22) {
+        // MOSTRAR ÚNICAMENTE EL NOMBRE DEL PRODUCTO (SIN MONTOS DE INVERSIÓN)
+        if (box.width > 36 && box.height > 18) {
           ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
 
-          ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          const maxTextW = box.width - 12;
+          ctx.font = 'bold 11.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          const maxTextW = box.width - 10;
           
           let prodText = box.producto;
           if (ctx.measureText(prodText).width > maxTextW) {
             let truncated = prodText;
-            while (truncated.length > 2 && ctx.measureText(truncated + '...').width > maxTextW) {
+            while (truncated.length > 1 && ctx.measureText(truncated + '...').width > maxTextW) {
               truncated = truncated.slice(0, -1);
             }
             prodText = truncated + '...';
           }
-          ctx.fillText(prodText, box.x + 6, box.y + 6);
-
-          if (box.height > 40) {
-            const pctVal = totalProdInv > 0 ? ((box.value / totalProdInv) * 100).toFixed(1) : 0;
-            ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-            ctx.fillText(`$${formatMillions(box.value)}M (${pctVal}%)`, box.x + 6, box.y + 22);
-          }
+          ctx.fillText(prodText, box.x + box.width / 2, box.y + box.height / 2);
         }
       });
     }
@@ -2579,131 +2651,164 @@
     }
 
     function renderBroadcastDetailChart(broadcastTotals, selectedMedium) {
-      const ctx = document.getElementById('broadcastDetailChart').getContext('2d');
-      const sortedChannels = Object.entries(broadcastTotals)
+      const canvas = document.getElementById('broadcastDetailChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const sortedChannels = Object.entries(broadcastTotals || {})
         .map(([name, total]) => ({ name, total }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 10);
 
-      const labels = sortedChannels.map(c => c.name);
-      const values = sortedChannels.map(c => c.total);
+      let labels = sortedChannels.map(c => c.name);
+      let values = sortedChannels.map(c => c.total);
       const totalBroadcastFiltered = values.reduce((a, b) => a + b, 0);
 
-      const colorPalette = [
+      let colorPalette = [
         '#005a2b', '#065f46', '#1e3a8a', '#2563eb', '#0284c7',
         '#0369a1', '#0d9488', '#059669', '#10b981', '#f59e0b'
       ];
 
-      if (broadcastDetailChartInstance) broadcastDetailChartInstance.destroy();
+      if (labels.length === 0) {
+        labels = ['Sin datos'];
+        values = [0];
+        colorPalette = ['#cbd5e1'];
+      }
 
-      broadcastDetailChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels.length > 0 ? labels : ['Sin datos'],
-          datasets: [{
-            data: values.length > 0 ? values : [0],
-            backgroundColor: colorPalette.slice(0, Math.max(sortedChannels.length, 1)),
-            borderRadius: 5,
-            barPercentage: 0.65,
-            categoryPercentage: 0.8
-          }]
-        },
-        plugins: [insideVerticalBarPercentPlugin],
-        options: {
-          indexAxis: 'x',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  const val = ctx.raw;
-                  const pct = totalBroadcastFiltered > 0 ? ((val / totalBroadcastFiltered) * 100).toFixed(1) : 0;
-                  const medTxt = selectedMedium === 'ALL' ? 'medios audiovisuales' : selectedMedium;
-                  return ` Inversión: $${formatMillions(val)}M MXN (${pct}% de ${medTxt})`;
+      if (broadcastDetailChartInstance) {
+        broadcastDetailChartInstance.destroy();
+        broadcastDetailChartInstance = null;
+      }
+
+      try {
+        broadcastDetailChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colorPalette.slice(0, Math.max(labels.length, 1)),
+              borderRadius: 5,
+              barPercentage: 0.65,
+              categoryPercentage: 0.8
+            }]
+          },
+          plugins: [insideVerticalBarPercentPlugin],
+          options: {
+            indexAxis: 'x',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const val = ctx.raw;
+                    const pct = totalBroadcastFiltered > 0 ? ((val / totalBroadcastFiltered) * 100).toFixed(1) : 0;
+                    const medTxt = selectedMedium === 'ALL' ? 'medios audiovisuales' : selectedMedium;
+                    return ` Inversión: $${formatMillions(val)}M MXN (${pct}% de ${medTxt})`;
+                  }
                 }
               }
-            }
-          },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { font: { size: 11, weight: '600' }, color: '#334155', maxRotation: 25, minRotation: 0 }
             },
-            y: {
-              beginAtZero: true,
-              ticks: { callback: v => `$${formatMillions(v)}M` },
-              grid: { color: '#f1f5f9' }
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { font: { size: 11, weight: '600' }, color: '#334155', maxRotation: 25, minRotation: 0 }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { callback: v => `$${formatMillions(v)}M` },
+                grid: { color: '#f1f5f9' }
+              }
             }
           }
-        }
-      });
+        });
+      } catch (err) {
+        console.error("Error al renderizar broadcastDetailChart:", err);
+      }
     }
 
     function renderTypeChart(typeTotals, grandTotal, currentSelectedMedia) {
-      const ctx = document.getElementById('typeChart').getContext('2d');
-      const sortedTypes = Object.entries(typeTotals)
+      const canvas = document.getElementById('typeChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const sortedTypes = Object.entries(typeTotals || {})
         .map(([name, total]) => ({ name, total }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 10);
 
-      const labels = sortedTypes.map(t => t.name);
-      const values = sortedTypes.map(t => t.total);
+      let labels = sortedTypes.map(t => t.name);
+      let values = sortedTypes.map(t => t.total);
       const totalTypeFiltered = values.reduce((a, b) => a + b, 0);
 
-      const typePalette = [
+      let typePalette = [
         '#005a2b', '#1e3a8a', '#2563eb', '#3b82f6', '#0284c7',
         '#06b6d4', '#0d9488', '#10b981', '#64748b', '#94a3b8'
       ];
 
-      if (typeChartInstance) typeChartInstance.destroy();
+      if (labels.length === 0) {
+        labels = ['Sin datos'];
+        values = [0];
+        typePalette = ['#cbd5e1'];
+      }
 
-      typeChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: values,
-            backgroundColor: typePalette.slice(0, sortedTypes.length),
-            borderRadius: 4,
-            barThickness: 16
-          }]
-        },
-        plugins: [insideBarPercentPlugin],
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  const val = ctx.raw;
-                  const pct = totalTypeFiltered > 0 ? ((val / totalTypeFiltered) * 100).toFixed(1) : 0;
-                  return ` Inversión: $${formatMillions(val)}M MXN (${pct}% de este medio)`;
+      if (typeChartInstance) {
+        typeChartInstance.destroy();
+        typeChartInstance = null;
+      }
+
+      try {
+        typeChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: typePalette.slice(0, labels.length),
+              borderRadius: 4,
+              barThickness: 16
+            }]
+          },
+          plugins: [insideBarPercentPlugin],
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const val = ctx.raw;
+                    const pct = totalTypeFiltered > 0 ? ((val / totalTypeFiltered) * 100).toFixed(1) : 0;
+                    return ` Inversión: $${formatMillions(val)}M MXN (${pct}% de este medio)`;
+                  }
                 }
               }
-            }
-          },
-          scales: {
-            x: {
-              beginAtZero: true,
-              ticks: { callback: v => `$${formatMillions(v)}M` },
-              grid: { color: '#f1f5f9' }
             },
-            y: {
-              grid: { display: false },
-              ticks: { font: { size: 11.5, weight: '600' }, color: '#334155' }
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { callback: v => `$${formatMillions(v)}M` },
+                grid: { color: '#f1f5f9' }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { font: { size: 11.5, weight: '600' }, color: '#334155' }
+              }
             }
           }
-        }
-      });
+        });
+      } catch (err) {
+        console.error("Error al renderizar typeChart:", err);
+      }
     }
 
     function renderTable(brands, grandTotal, selectedMonth, selectedQuarter) {
       const tbody = document.getElementById('table-body');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       const isMonthFixed = selectedMonth !== 'ALL';
