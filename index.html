@@ -1,4 +1,4 @@
-<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="24" width="1240" height="920"><head>
+<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="26" width="1240" height="920"><head>
   <meta charset="UTF-8">
   <title>Competitive Landscape &amp; Testigos JLR</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -825,8 +825,9 @@
         </div>
       </div>
 
+      <!-- PANEL DE INSIGHTS ESTRATÉGICOS -->
       <div class="insights-panel">
-        <h4 id="strategic-insights-title">Insights Estratégicos de Inversión (SOI)</h4>
+        <h4 id="strategic-insights-title">Insights Estratégicos</h4>
         <p id="strategic-insights-text">Procesando datos consolidados de inversión...</p>
       </div>
 
@@ -1026,6 +1027,13 @@
           </div>
 
           <div class="filter-group">
+            <label for="t-q-filter">Periodo / Q</label>
+            <select id="t-q-filter">
+              <option value="">Todos los Q</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
             <label for="t-mes-filter">Mes / Periodo</label>
             <select id="t-mes-filter">
               <option value="">Todos los Meses</option>
@@ -1068,7 +1076,6 @@
                   <th>Marca</th>
                   <th>Producto / Modelo</th>
                   <th>Canal</th>
-                  <th>Dur.</th>
                 </tr>
               </thead>
               <tbody id="testigos-table-body"></tbody>
@@ -1934,12 +1941,37 @@
         periodoDesc = `Trimestre ${selectedQuarter}`;
       }
 
-      document.getElementById('strategic-insights-text').textContent =
-        `Para el periodo de ${periodoDesc}, la inversión total del mercado analizado suma $${formatMillions(grandTotal)}M MXN. La marca objetivo (${targetName}) registra una variación trimestral QoQ de ${varText} (${subDesc}). En medios televisivos se registran ${totalTVGRPs > 0 ? totalTVGRPs.toFixed(1) + ' GRPs' : tvSpotsCount + ' spots'} distribuidos entre ${tvBrandsSet.size} marcas. La concentración general por tipo de medio se divide en ${sumMacro > 0 ? Math.round((totalON / sumMacro) * 100) : 0}% medios ON frente a ${sumMacro > 0 ? Math.round((totalOFF / sumMacro) * 100) : 0}% en medios tradicionales OFF.`;
+      // NARRATIVA INTELIGENTE DE INSIGHTS ESTRATÉGICOS: ENFOCADA EN LAS MARCAS LÍDERES
+      const top3Brands = aggregatedBrands.slice(0, 3);
+      const topBrandsFormattedText = top3Brands.map(b => {
+        const bSoi = grandTotal > 0 ? Math.round((b.total / grandTotal) * 100) : 0;
+        return `<strong>${b.brand}</strong> ($${formatMillions(b.total)}M, ${bSoi}% SOI)`;
+      }).join(', ');
 
-      const top3Brands = aggregatedBrands.slice(0, 3).map(b => `${b.brand} ($${formatMillions(b.total)}M)`).join(', ');
-      const clientItem = aggregatedBrands.find(b => b.isClient);
-      const clientPosition = aggregatedBrands.findIndex(b => b.isClient) + 1;
+      // Determinar si Land Rover estuvo en el top de actividad (Top 3)
+      const clientPosIndex = aggregatedBrands.findIndex(b => b.isClient);
+      const clientInTop = clientPosIndex >= 0 && clientPosIndex < 3;
+      let landRoverMention = '';
+
+      if (clientInTop) {
+        const clientObj = aggregatedBrands[clientPosIndex];
+        const clientSoiVal = grandTotal > 0 ? Math.round((clientObj.total / grandTotal) * 100) : 0;
+        landRoverMention = ` Dentro de este grupo líder destaca <strong>Land Rover</strong> en la posición #${clientPosIndex + 1} con una inversión de $${formatMillions(clientObj.total)}M MXN (${clientSoiVal}% SOI) y una variación de ${varText} (${subDesc}).`;
+      }
+
+      let tvText = '';
+      if (totalTVGRPs > 0) {
+        tvText = ` En medios televisivos se concentraron <strong>${totalTVGRPs.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GRPs</strong> a través de ${tvBrandsSet.size} marcas.`;
+      } else if (tvSpotsCount > 0) {
+        tvText = ` En medios televisivos se registraron <strong>${tvSpotsCount.toLocaleString()} spots</strong> a través de ${tvBrandsSet.size} marcas.`;
+      }
+
+      const mixText = sumMacro > 0 
+        ? ` La concentración general por tipo de medio se divide en <strong>${Math.round((totalON / sumMacro) * 100)}% en medios ON</strong> frente a <strong>${Math.round((totalOFF / sumMacro) * 100)}% en medios tradicionales OFF</strong>.`
+        : '';
+
+      document.getElementById('strategic-insights-text').innerHTML =
+        `Para el periodo de ${periodoDesc}, la inversión total del mercado analizado suma <strong>$${formatMillions(grandTotal)}M MXN</strong>, encabezada principalmente por ${topBrandsFormattedText || 'los principales competidores del mercado'}.${landRoverMention}${tvText}${mixText}`;
 
       let maxMonthVal = 0;
       let maxMonthIdx = 0;
@@ -1951,7 +1983,10 @@
       });
       const topMesNombre = MESES_NOMBRES_LARGOS[maxMonthIdx];
 
-      let dynamicTrendInsight = `El ranking de pauta publicitaria lo encabezan <strong>${top3Brands || 'los competidores líderes'}</strong>. `;
+      const clientItem = aggregatedBrands.find(b => b.isClient);
+      const clientPosition = aggregatedBrands.findIndex(b => b.isClient) + 1;
+
+      let dynamicTrendInsight = `El ranking de pauta publicitaria lo encabezan <strong>${topBrandsFormattedText || 'los competidores líderes'}</strong>. `;
       dynamicTrendInsight += `A nivel temporal, <strong>${topMesNombre}</strong> registró el mayor volumen de inversión publicitaria acumulada ($${formatMillions(maxMonthVal)}M MXN). `;
       if (clientItem) {
         dynamicTrendInsight += `Por su parte, <strong>${clientItem.brand}</strong> se posiciona en el lugar <strong>#${clientPosition}</strong> con una inversión total de $${formatMillions(clientItem.total)}M MXN.`;
@@ -2799,7 +2834,6 @@
       }
     }
 
-    // TABLA DE RESUMEN DETALLADO CON ESTRUCTURA EXACTA: MARCA, CLASIFICACIÓN, Q1 2026, Q2 2026, Q3 2026, TOTAL INVERSIÓN, SOI %, MEDIO PRINCIPAL
     function renderTable(brands, grandTotal) {
       const tbody = document.getElementById('table-body');
       if (!tbody) return;
@@ -2853,14 +2887,23 @@
           rawTestigos = results.data.filter(row => {
             return (row["Marcas"] || row["Testigo"] || row["Medio Ok"] || row["Medio"] || row["Marca"]);
           }).map(row => {
+            const mesVal = row["Mes"] || row["MES"] || row["Mes / Periodo"] || "";
+            let qVal = row["Q"] || row["Quarter"] || row["Trimestre"] || "";
+            if (!qVal) {
+              const mLower = String(mesVal).toLowerCase();
+              if (mLower.includes('ene') || mLower.includes('feb') || mLower.includes('mar') || mLower === '1' || mLower === '2' || mLower === '3') qVal = 'Q1';
+              else if (mLower.includes('abr') || mLower.includes('may') || mLower.includes('jun') || mLower === '4' || mLower === '5' || mLower === '6') qVal = 'Q2';
+              else if (mLower.includes('jul') || mLower.includes('ago') || mLower.includes('sep') || mLower === '7' || mLower === '8' || mLower === '9') qVal = 'Q3';
+              else if (mLower.includes('oct') || mLower.includes('nov') || mLower.includes('dic') || mLower === '10' || mLower === '11' || mLower === '12') qVal = 'Q4';
+            }
             return {
               "Año": row["Año"] || row["Ano"] || "2026",
-              "Mes": row["Mes"] || row["MES"] || row["Q"] || "Ene",
+              "Q": qVal || "Q1",
+              "Mes": mesVal || qVal || "Ene",
               "Medio Ok": row["Medio Ok"] || row["Medio"] || "Otros",
               "Marcas": row["Marcas"] || row["Marca"] || "",
               "Producto": row["Producto"] || row["Modelo"] || "",
               "Canal": row["Canal"] || "",
-              "Duración": row["Duración"] || row["Duracion"] || "0",
               "Testigo": row["Testigo"] || row["URL"] || row["Enlace"] || ""
             };
           });
@@ -2885,21 +2928,25 @@
 
     function populateTestigosFilters() {
       const anoSel = document.getElementById('t-ano-filter');
+      const qSel = document.getElementById('t-q-filter');
       const mesSel = document.getElementById('t-mes-filter');
       const medioSel = document.getElementById('t-medio-filter');
       const marcaSel = document.getElementById('t-marca-filter');
 
       anoSel.innerHTML = '<option value="">Todos los Años</option>';
+      if (qSel) qSel.innerHTML = '<option value="">Todos los Q</option>';
       mesSel.innerHTML = '<option value="">Todos los Meses</option>';
       medioSel.innerHTML = '<option value="">Todos los Medios</option>';
       marcaSel.innerHTML = '<option value="">Todas las Marcas</option>';
 
       const anos = [...new Set(rawTestigos.map(d => d["Año"]).filter(Boolean))].sort();
+      const qs = [...new Set(rawTestigos.map(d => d["Q"]).filter(Boolean))].sort();
       const meses = [...new Set(rawTestigos.map(d => d["Mes"]).filter(Boolean))].sort();
       const medios = [...new Set(rawTestigos.map(d => d["Medio Ok"]).filter(Boolean))].sort();
       const marcas = [...new Set(rawTestigos.map(d => d["Marcas"]).filter(Boolean))].sort();
 
       anos.forEach(a => anoSel.innerHTML += `<option value="${a}">${a}</option>`);
+      if (qSel) qs.forEach(q => qSel.innerHTML += `<option value="${q}">${q}</option>`);
       meses.forEach(m => mesSel.innerHTML += `<option value="${m}">${m}</option>`);
       medios.forEach(m => medioSel.innerHTML += `<option value="${m}">${m}</option>`);
       marcas.forEach(m => marcaSel.innerHTML += `<option value="${m}">${m}</option>`);
@@ -2915,16 +2962,18 @@
 
     function renderTestigosTable() {
       const selAno = document.getElementById('t-ano-filter').value;
+      const selQ = document.getElementById('t-q-filter') ? document.getElementById('t-q-filter').value : "";
       const selMes = document.getElementById('t-mes-filter').value;
       const selMedio = document.getElementById('t-medio-filter').value;
       const selMarca = document.getElementById('t-marca-filter').value;
 
       const filtered = rawTestigos.filter(row => {
         const matchAno = !selAno || row["Año"] === selAno;
+        const matchQ = !selQ || row["Q"] === selQ;
         const matchMes = !selMes || row["Mes"] === selMes;
         const matchMedio = !selMedio || row["Medio Ok"] === selMedio;
         const matchMarca = !selMarca || row["Marcas"] === selMarca;
-        return matchAno && matchMes && matchMedio && matchMarca;
+        return matchAno && matchQ && matchMes && matchMedio && matchMarca;
       });
 
       document.getElementById('t-counter').textContent = `${filtered.length} de ${rawTestigos.length} Testigos`;
@@ -2940,7 +2989,6 @@
           <td><strong>${row["Marcas"]}</strong></td>
           <td>${row["Producto"]}</td>
           <td>${row["Canal"]}</td>
-          <td>${row["Duración"]}s</td>
         `;
 
         tr.addEventListener("click", () => {
@@ -2959,7 +3007,7 @@
       const viewer = document.getElementById('t-viewer-body');
 
       title.textContent = `${row["Marcas"]} - ${row["Producto"]}`;
-      details.textContent = `${row["Medio Ok"]} | Canal: ${row["Canal"]} | Duración: ${row["Duración"]}s | ${row["Año"]} ${row["Mes"]}`;
+      details.textContent = `${row["Medio Ok"]} | Canal: ${row["Canal"]} | ${row["Año"]} ${row["Mes"]}`;
 
       const url = row["Testigo"] || "";
       const urlLower = url.toLowerCase();
@@ -3099,12 +3147,18 @@
       });
 
       document.getElementById('t-ano-filter').addEventListener('change', renderTestigosTable);
+      if (document.getElementById('t-q-filter')) {
+        document.getElementById('t-q-filter').addEventListener('change', renderTestigosTable);
+      }
       document.getElementById('t-mes-filter').addEventListener('change', renderTestigosTable);
       document.getElementById('t-medio-filter').addEventListener('change', renderTestigosTable);
       document.getElementById('t-marca-filter').addEventListener('change', renderTestigosTable);
 
       document.getElementById('btn-reset-testigos').addEventListener('click', () => {
         document.getElementById('t-ano-filter').value = "";
+        if (document.getElementById('t-q-filter')) {
+          document.getElementById('t-q-filter').value = "";
+        }
         document.getElementById('t-mes-filter').value = "";
         document.getElementById('t-medio-filter').value = "";
         document.getElementById('t-marca-filter').value = "";
