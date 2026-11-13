@@ -1,4 +1,4 @@
-<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="23" width="1240" height="920"><head>
+<html data-type="html" data-identifier="4c28f3bb-81ef-42d8-9dfb-d0ba759d57a2" data-title="Competitive Landscape &amp; Testigos 2026" data-version="24" width="1240" height="920"><head>
   <meta charset="UTF-8">
   <title>Competitive Landscape &amp; Testigos JLR</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1088,12 +1088,12 @@
       </div>
     </div>
 
-    <!-- PESTAÑA 3: RESUMEN DETALLADO -->
+    <!-- PESTAÑA 3: RESUMEN DETALLADO AJUSTADO POR MARCA Y QUARTER (Q1, Q2, Q3 2026) -->
     <div class="tab-content" id="tab-content-resumen">
       <div class="table-panel">
         <div class="panel-header">
           <div class="panel-header-titles">
-            <h3 id="table-summary-title">Resumen Detallado por Marca y Temporalidad</h3>
+            <h3 id="table-summary-title">Resumen Detallado por Marca y Quarter (Q1, Q2, Q3 2026)</h3>
             <p id="table-summary-subtitle">Cifras en millones de pesos ($M MXN)</p>
           </div>
         </div>
@@ -1103,9 +1103,9 @@
               <tr>
                 <th>Marca</th>
                 <th>Clasificación</th>
-                <th>Periodo Seleccionado</th>
-                <th>Periodo Anterior</th>
-                <th>Variación</th>
+                <th>Q1 2026</th>
+                <th>Q2 2026</th>
+                <th>Q3 2026</th>
                 <th>Total Inversión</th>
                 <th>SOI %</th>
                 <th>Medio Principal</th>
@@ -1121,15 +1121,15 @@
   <script>
     const TARGET_BRAND_NAME = "Land Rover";
     
-const GITHUB_CSV_URLS = [
-  "./Base%20JLR.csv",
-  "https://raw.githubusercontent.com/Victor-diaz-gif/Competitive-Landscape-J/main/Base%20JLR.csv"
-];
+    const GITHUB_CSV_URLS = [
+      "./Base%20JLR.csv",
+      "https://raw.githubusercontent.com/Victor-diaz-gif/Competitive-Landscape-J/main/Base%20JLR.csv"
+    ];
 
-const TESTIGOS_URLS = [
-  "./Testigos%20JLR.csv",
-  "https://raw.githubusercontent.com/Victor-diaz-gif/Competitive-Landscape-J/main/Testigos%20JLR.csv"
-];
+    const TESTIGOS_URLS = [
+      "./Testigos%20JLR.csv",
+      "https://raw.githubusercontent.com/Victor-diaz-gif/Competitive-Landscape-J/main/Testigos%20JLR.csv"
+    ];
 
     const MESES_NOMBRES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const MESES_NOMBRES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -1986,7 +1986,6 @@ const TESTIGOS_URLS = [
 
       document.getElementById('media-type-insights-text').innerHTML = mediaTypeInsight;
 
-      // LLAMADAS BLINDADAS CON TRY/CATCH PARA CADA GRÁFICO
       try { renderClassificationChart(clasifTotals, grandTotal); } catch(e){ console.error(e); }
       try { renderBrandSoiChart(aggregatedBrands, grandTotal); } catch(e){ console.error(e); }
       try { renderTopCompetitorsChart(aggregatedBrands); } catch(e){ console.error(e); }
@@ -1995,14 +1994,13 @@ const TESTIGOS_URLS = [
       try { renderBrandGrpsChart(brandGrpsMap, brandSpotsMap, totalTVGRPs); } catch(e){ console.error(e); }
       try { renderBroadcastDetailChart(broadcastChannelTotals, selectedBroadcastMedium); } catch(e){ console.error(e); }
       try { renderTypeChart(typeTotals, grandTotal, selectedTypeMedia); } catch(e){ console.error(e); }
-      try { renderTable(aggregatedBrands, grandTotal, selectedMonth, selectedQuarter); } catch(e){ console.error(e); }
+      try { renderTable(aggregatedBrands, grandTotal); } catch(e){ console.error(e); }
 
       setTimeout(() => {
         try { renderNativeTreemap(filtered); } catch(e){ console.error(e); }
       }, 30);
     }
 
-    // GRÁFICO GRPs BLINDADO CONTRA DATOS VACÍOS O SIN ACTIVIDAD TV
     function renderBrandGrpsChart(brandGrpsMap, brandSpotsMap, totalTVGRPs) {
       const canvas = document.getElementById('brandGrpsChart');
       if (!canvas) return;
@@ -2080,7 +2078,6 @@ const TESTIGOS_URLS = [
       }
     }
 
-    // ALGORITMO BINARIO GARANTIZA 100% DE COBERTURA
     function computeBinaryTreemapBoxes(items, x, y, width, height) {
       if (!items || items.length === 0 || width <= 0 || height <= 0) return [];
       
@@ -2142,7 +2139,6 @@ const TESTIGOS_URLS = [
       }
     }
 
-    // TREEMAP: AJUSTADO AL 100%, TAMAÑO POR INVERSIÓN Y SOLO NOMBRES DE PRODUCTOS
     function renderNativeTreemap(records) {
       const canvas = document.getElementById('treemapCanvas');
       const container = document.getElementById('treemapContainer');
@@ -2229,7 +2225,6 @@ const TESTIGOS_URLS = [
         ctx.lineWidth = 1.8;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        // MOSTRAR ÚNICAMENTE EL NOMBRE DEL PRODUCTO (SIN MONTOS DE INVERSIÓN)
         if (box.width > 36 && box.height > 18) {
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
@@ -2804,52 +2799,14 @@ const TESTIGOS_URLS = [
       }
     }
 
-    function renderTable(brands, grandTotal, selectedMonth, selectedQuarter) {
+    // TABLA DE RESUMEN DETALLADO CON ESTRUCTURA EXACTA: MARCA, CLASIFICACIÓN, Q1 2026, Q2 2026, Q3 2026, TOTAL INVERSIÓN, SOI %, MEDIO PRINCIPAL
+    function renderTable(brands, grandTotal) {
       const tbody = document.getElementById('table-body');
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      const isMonthFixed = selectedMonth !== 'ALL';
-      const isQFixed = selectedQuarter !== 'ALL';
-
       brands.forEach(item => {
         const soi = grandTotal > 0 ? Math.round((item.total / grandTotal) * 100) : 0;
-        let curVal = item.total;
-        let prevVal = 0;
-        let hasPrev = false;
-
-        if (isMonthFixed) {
-          const mIdx = parseInt(selectedMonth, 10);
-          curVal = item.monthly[mIdx] || 0;
-          if (mIdx > 0) {
-            prevVal = item.monthly[mIdx - 1] || 0;
-            hasPrev = true;
-          }
-        } else if (isQFixed) {
-          if (selectedQuarter === 'Q2') {
-            curVal = item.q2; prevVal = item.q1; hasPrev = true;
-          } else if (selectedQuarter === 'Q3') {
-            curVal = item.q3; prevVal = item.q2; hasPrev = true;
-          } else if (selectedQuarter === 'Q4') {
-            curVal = item.q4; prevVal = item.q3; hasPrev = true;
-          } else {
-            curVal = item.q1; prevVal = 0; hasPrev = false;
-          }
-        }
-
-        let diffTxt = "-";
-        let diffColor = "#64748b";
-        if (hasPrev) {
-          if (prevVal > 0) {
-            const pct = Math.round(((curVal - prevVal) / prevVal) * 100);
-            diffTxt = `${pct >= 0 ? '+' : ''}${pct}%`;
-            diffColor = pct >= 0 ? '#059669' : '#dc2626';
-          } else if (curVal > 0) {
-            diffTxt = "+100%";
-            diffColor = '#059669';
-          }
-        }
-
         const row = document.createElement('tr');
         if (item.isClient) row.classList.add('target-client');
 
@@ -2861,9 +2818,9 @@ const TESTIGOS_URLS = [
             </div>
           </td>
           <td>${item.classification}</td>
-          <td>$${formatMillions(curVal)}M</td>
-          <td>${hasPrev ? '$' + formatMillions(prevVal) + 'M' : 'N/A'}</td>
-          <td style="font-weight: 700; color: ${diffColor};">${diffTxt}</td>
+          <td>$${formatMillions(item.q1)}M</td>
+          <td>$${formatMillions(item.q2)}M</td>
+          <td>$${formatMillions(item.q3)}M</td>
           <td><strong>$${formatMillions(item.total)}M</strong></td>
           <td><strong>${soi}%</strong></td>
           <td>${item.primaryChannel}</td>
@@ -3079,7 +3036,7 @@ const TESTIGOS_URLS = [
       });
 
       btnTabResumen.addEventListener('click', () => {
-        switchTab(btnTabResumen, contentResumen, "Resumen Detallado", "Inversión por Marca y Temporalidad");
+        switchTab(btnTabResumen, contentResumen, "Resumen Detallado", "Inversión por Marca y Quarter (Q1, Q2, Q3 2026)");
       });
 
       document.getElementById('quarter-filter').addEventListener('change', () => {
